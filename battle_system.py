@@ -3,6 +3,7 @@ from vk_api.utils import get_random_id
 from utils import split_message, parse_user_mention
 import random
 from config import ADMIN_IDS
+from database import get_user_nick, get_character_by_owner_id, add_win, add_loss
 
 BATTLE_STATE_WAITING = "waiting"
 BATTLE_STATE_ACTIVE = "active"
@@ -395,14 +396,21 @@ class Battle:
         if player.get('name_cached'):
             return player['name_cached']
         try:
-            user_info = vk_handle.users.get(user_ids=[user_id])[0]
-            name = f"[id{user_id}|{user_info['first_name']}]"
+            nick = get_user_nick(user_id)
+            if nick:
+                name = f"[id{user_id}|{nick}]"
+            else:
+                char_row = get_character_by_owner_id(user_id)
+                if char_row and 'full_name' in dict(char_row):
+                    name = f"[id{user_id}|{dict(char_row)['full_name']}]"
+                else:
+                    name = f"[id{user_id}|{user_id}]"
             player['name_cached'] = name
             return name
         except Exception:
-            default_name = f"[id{user_id}|Игрок {'1' if user_id == self.challenger_id else '2'}]"
-            player['name_cached'] = default_name
-            return default_name
+            name = f"[id{user_id}|{user_id}]"
+            player['name_cached'] = name
+            return name
 
 
     def _apply_and_tick_effects(self, current_player_id, vk_handle):
@@ -804,8 +812,12 @@ class Battle:
                 final_log_message = f"⚔️ Бой окончен! Ничья между {player_name_str} и {opponent_name_str}!"
             elif opponent['hp'] <= 0:
                 final_log_message = f"⚔️ Бой окончен! Победитель: {player_name_str}!"
-            else: 
+                add_win(user_id)
+                add_loss(opponent_id)
+            else:
                 final_log_message = f"⚔️ Бой окончен! Победитель: {opponent_name_str}!"
+                add_win(opponent_id)
+                add_loss(user_id)
             action_log.append(final_log_message)
             self._add_log(f"*** {final_log_message} ***")
 
@@ -938,12 +950,16 @@ def handle_battle_command(vk, event, text_command_stripped):
     command_parts = text_command_stripped.lower().split()
     main_command = command_parts[0] if command_parts else ""
 
-    player_name_display = f"[id{user_id}|Пользователь]" 
-    try:
-        player_info = vk.users.get(user_ids=[user_id])[0]
-        player_name_display = f"[id{user_id}|{player_info['first_name']}]"
-    except Exception: pass
+    def get_display_name(vk_id):
+        nick = get_user_nick(vk_id)
+        if nick:
+            return f"[id{vk_id}|{nick}]"
+        char_row = get_character_by_owner_id(vk_id)
+        if char_row and 'full_name' in dict(char_row):
+            return f"[id{vk_id}|{dict(char_row)['full_name']}]"
+        return f"[id{vk_id}|{vk_id}]"
 
+    player_name_display = get_display_name(user_id)
 
     if main_command == 'бой':
         if peer_id < 2000000000:
@@ -962,11 +978,7 @@ def handle_battle_command(vk, event, text_command_stripped):
             send_battle_message(vk, peer_id, "Вы не можете вызвать на бой самого себя!")
             return
         
-        target_name_display = f"[id{target_id}|Цель]"
-        try:
-            target_info = vk.users.get(user_ids=[target_id])[0]
-            target_name_display = f"[id{target_id}|{target_info['first_name']}]"
-        except Exception: pass
+        target_name_display = get_display_name(target_id)
 
         active_battles[peer_id] = Battle(user_id, target_id, peer_id)
         active_battles[peer_id]._get_player_name(user_id, vk) 
@@ -984,8 +996,8 @@ def handle_battle_command(vk, event, text_command_stripped):
 
     if main_command == 'отменить':
         if user_id == battle.challenger_id or user_id == battle.target_id or is_admin: 
-            challenger_name_on_cancel = battle._get_player_name(battle.challenger_id, vk)
-            target_name_on_cancel = battle._get_player_name(battle.target_id, vk)
+            challenger_name_on_cancel = get_display_name(battle.challenger_id)
+            target_name_on_cancel = get_display_name(battle.target_id)
             del active_battles[peer_id]
             send_battle_message(vk, peer_id, f"⚔️ Бой между {challenger_name_on_cancel} и {target_name_on_cancel} отменен {player_name_display}.")
         else:
@@ -1013,8 +1025,8 @@ def handle_battle_command(vk, event, text_command_stripped):
             return
         elif main_command == 'отклонить':
             if user_id == battle.target_id:
-                challenger_name_on_decline = battle._get_player_name(battle.challenger_id, vk) 
-                target_name_on_decline = battle._get_player_name(battle.target_id, vk)
+                challenger_name_on_decline = get_display_name(battle.challenger_id)
+                target_name_on_decline = get_display_name(battle.target_id)
                 del active_battles[peer_id]
                 send_battle_message(vk, peer_id, f"⚔️ {target_name_on_decline} отклонил вызов на бой от {challenger_name_on_decline}.")
             else:

@@ -54,3 +54,19 @@ CREATE TABLE IF NOT EXISTS pending_text ( -- Для сбора длинных т
     content TEXT,
     target_char_id INTEGER DEFAULT NULL -- Для редактирования существующего
 );
+
+CREATE TABLE IF NOT EXISTS user_nicks (
+    vk_id INTEGER PRIMARY KEY,
+    nick TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_stats (
+    vk_id INTEGER PRIMARY KEY,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS user_wallets (
+    vk_id INTEGER PRIMARY KEY,
+    balance INTEGER DEFAULT 0
+);

@@ -1,3 +1,4 @@
+# vk_rp_bot/admin_handlers.py
 import vk_api
 from vk_api.utils import get_random_id
 import json
@@ -30,7 +31,7 @@ def send_admin_message_parts(vk, user_id, text, keyboard=None):
         try:
             vk.messages.send(user_id=user_id, message=part, random_id=get_random_id(), keyboard=current_keyboard)
         except vk_api.exceptions.ApiError as e:
-            print(f"Ошибка отправки админ сообщения пользователю {user_id}: {e}")
+            print(f"[ERROR] Ошибка отправки админ сообщения пользователю {user_id}: {e}")
             if i == 0: vk.messages.send(user_id=user_id, message="Не удалось отобразить информацию для администратора.", random_id=get_random_id())
             break
 
@@ -47,16 +48,21 @@ def _go_to_char_selection(user_id, vk, for_action="edit", current_page=0):
         send_admin_message_parts(vk, user_id, f"Нет персонажей для {action_text_none}.", get_admin_panel_keyboard())
         _go_to_admin_panel(user_id, vk); return
     action_text_list = "редактирования" if for_action == "edit" else "просмотра"
-    send_admin_message_parts(vk, user_id, f"Выберите персонажа для {action_text_list} (Стр. {current_page + 1}):",
-                             get_admin_character_list_keyboard(characters, for_action=for_action, current_page=current_page))
+    try:
+        kb = get_admin_character_list_keyboard(characters, for_action=for_action, current_page=current_page)
+    except Exception as e:
+        print(f"[ERROR] Ошибка в get_admin_character_list_keyboard: {e}")
+        send_admin_message_parts(vk, user_id, f"Ошибка формирования клавиатуры: {e}", get_admin_panel_keyboard())
+        _go_to_admin_panel(user_id, vk); return
+    send_admin_message_parts(vk, user_id, f"Выберите персонажа для {action_text_list} (Стр. {current_page + 1}):", kb)
 
 def _go_to_edit_char_actions(user_id, vk, char_id, state_data_ref=None):
     state_data_to_use = state_data_ref.copy() if state_data_ref else {}
     character_row = get_character_by_id(char_id)
     character_name = character_row['full_name'] if character_row else f"ID {char_id} (не найден)"
     updated_state_data = {'edit_char_id': char_id}
-    if 'page' in state_data_to_use: updated_state_data['page'] = state_data_to_use['page']
-    if 'for_action' in state_data_to_use: updated_state_data['for_action'] = state_data_to_use['for_action']
+    if 'page' in state_data_to_use and state_data_to_use.get('for_action') == 'edit':
+        updated_state_data['page'] = state_data_to_use['page']
     updated_state_data.pop('admin_stat_page', None)
     set_user_state(user_id, STATE_ADMIN_EDIT_CHOOSE_ACTION, updated_state_data)
     send_admin_message_parts(vk, user_id, f"Редактирование: {character_name}. Выберите действие:", get_admin_edit_character_actions_keyboard(char_id))
@@ -65,13 +71,31 @@ def _go_to_edit_char_actions(user_id, vk, char_id, state_data_ref=None):
 def handle_admin_command(vk, event):
     user_id = event.obj.message['from_id']
     text_original = event.obj.message['text']; text = text_original.strip()
-    print(f"DEBUG ADMIN_HANDLER: User {user_id} text='{text_original}', payload='{event.obj.message.get('payload')}'")
     raw_payload = event.obj.message.get('payload'); payload = None
     if isinstance(raw_payload, str):
         try: payload = json.loads(raw_payload)
         except json.JSONDecodeError: print(f"ADMIN_HANDLER: Warn: Could not decode payload: {raw_payload}")
     elif isinstance(raw_payload, dict): payload = raw_payload
     current_state, state_data = get_user_state(user_id); state_data = state_data or {}
+
+    print(f"DEBUG ADMIN_HANDLER: User {user_id} State: {current_state}, Text='{text}', Payload='{payload}'")
+
+    if payload and payload.get("action") == "admin_char_list_page":
+        new_page = payload.get("page", 0)
+        for_action = payload.get("for_action", state_data.get("for_action", "edit"))
+        _go_to_char_selection(user_id, vk, for_action=for_action, current_page=new_page); return
+    if payload and payload.get("action") == "admin_edit_stat_page":
+        char_id_stat_page = payload.get("char_id", state_data.get("edit_char_id"))
+        new_page_stat = payload.get("page", 0)
+        if char_id_stat_page:
+            character_row = get_character_by_id(char_id_stat_page)
+            if character_row:
+                state_data["admin_stat_page"] = new_page_stat
+                set_user_state(user_id, STATE_ADMIN_EDIT_CHOOSE_ACTION, state_data)
+                send_admin_message_parts(vk, user_id, f"Редактирование статов (Стр. {new_page_stat + 1}):", get_admin_edit_stat_fields_keyboard(char_id_stat_page, dict(character_row), current_page=new_page_stat))
+            else: _go_to_admin_panel(user_id, vk)
+        else: _go_to_admin_panel(user_id, vk)
+        return
 
     if text.lower() == "назад в главное меню": from user_handlers import handle_start; clear_user_state(user_id); handle_start(vk, event); return
     if text.lower() == "назад в админ панель" or (payload and payload.get("action") == "back_to_admin_panel"): _go_to_admin_panel(user_id, vk); return
@@ -83,13 +107,16 @@ def handle_admin_command(vk, event):
 
     if current_state and (current_state.startswith("admin_add_char_") or current_state.startswith("admin_edit_")):
         if text.lower() == "отмена":
-            print(f"DEBUG ADMIN_HANDLER: 'Отмена' pressed in state {current_state}")
             clear_pending_text(user_id)
             edit_char_id_on_cancel = state_data.get("edit_char_id")
             if current_state in [STATE_ADMIN_EDIT_FIELD_VALUE, STATE_ADMIN_EDIT_STAT_VALUE, STATE_ADMIN_EDIT_RP_POINTS, STATE_ADMIN_EDIT_BALANCE, STATE_ADMIN_EDIT_CURSED_TECHNIQUE, STATE_ADMIN_EDIT_EQUIPMENT, STATE_ADMIN_EDIT_LEARNED_TECHNIQUE] and edit_char_id_on_cancel:
                 _go_to_edit_char_actions(user_id, vk, edit_char_id_on_cancel, state_data)
             elif current_state == STATE_ADMIN_EDIT_CHOOSE_ACTION and edit_char_id_on_cancel:
                  _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0))
+            elif current_state == STATE_ADMIN_EDIT_CHOOSE_CHAR or current_state == STATE_ADMIN_VIEW_CHOOSE_CHAR:
+                _go_to_admin_panel(user_id,vk)
+            elif current_state.startswith("admin_add_char_"):
+                _go_to_admin_panel(user_id, vk)
             else: _go_to_admin_panel(user_id, vk)
             return
 
@@ -97,27 +124,33 @@ def handle_admin_command(vk, event):
         if text.lower() == "отмена": _go_to_admin_panel(user_id,vk); return
         owner_vk_id = parse_user_mention(text);
         if owner_vk_id: state_data['owner_vk_id'] = owner_vk_id; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_NAME, state_data); send_admin_message_parts(vk, user_id, "Полное Имя персонажа:\n[Имя Фамилия | Прозвище]\nИли 'Отмена'")
-        else: send_admin_message_parts(vk, user_id, "Некорректный тэг. Введите тэг (@tag) или [id123|@tag].\nИли 'Отмена'"); return
+        else: send_admin_message_parts(vk, user_id, "Некорректный тэг. Введите тэг (@tag) или [id123|@tag].\nИли 'Отмена'")
+        return # <--- ДОБАВЛЕН RETURN
     elif current_state == STATE_ADMIN_ADD_CHAR_NAME:
         if text.lower() == "отмена": _go_to_admin_panel(user_id,vk); return
-        state_data['full_name'] = text; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_AGE, state_data); send_admin_message_parts(vk, user_id, "Возраст персонажа (число):\nИли 'Отмена'"); return
+        state_data['full_name'] = text; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_AGE, state_data); send_admin_message_parts(vk, user_id, "Возраст персонажа (число):\nИли 'Отмена'")
+        return # <--- ДОБАВЛЕН RETURN
     elif current_state == STATE_ADMIN_ADD_CHAR_AGE:
         if text.lower() == "отмена": _go_to_admin_panel(user_id,vk); return
         try: age_val = int(text)
         except ValueError: send_admin_message_parts(vk, user_id, "Некорректный возраст. Введите число или 'Отмена'."); return
         if age_val < 0: send_admin_message_parts(vk, user_id, "Возраст не может быть отрицательным."); return
-        state_data['age'] = age_val; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_GENDER, state_data); send_admin_message_parts(vk, user_id, "Выберите Пол персонажа (или 'Отмена'):", get_gender_selection_keyboard()); return
+        state_data['age'] = age_val; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_GENDER, state_data); send_admin_message_parts(vk, user_id, "Выберите Пол персонажа (или 'Отмена'):", get_gender_selection_keyboard())
+        return # <--- ДОБАВЛЕН RETURN
     elif current_state == STATE_ADMIN_ADD_CHAR_GENDER:
         if text.lower() == "отмена": _go_to_admin_panel(user_id,vk); return
         if text in ["Мужской", "Женский", "Иное"]: state_data['gender'] = text; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_FACTION, state_data); send_admin_message_parts(vk, user_id, "Принадлежность/Фракция:\nИли 'Отмена'")
-        else: send_admin_message_parts(vk, user_id, "Выберите пол из предложенных или 'Отмена'.", get_gender_selection_keyboard()); return
+        else: send_admin_message_parts(vk, user_id, "Выберите пол из предложенных или 'Отмена'.", get_gender_selection_keyboard())
+        return # <--- ДОБАВЛЕН RETURN
     elif current_state == STATE_ADMIN_ADD_CHAR_FACTION:
         if text.lower() == "отмена": _go_to_admin_panel(user_id,vk); return
-        state_data['faction'] = text; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_APPEARANCE, state_data); send_admin_message_parts(vk, user_id, "Внешность (текст):\nИли 'Отмена'"); return
+        state_data['faction'] = text; set_user_state(user_id, STATE_ADMIN_ADD_CHAR_APPEARANCE, state_data); send_admin_message_parts(vk, user_id, "Внешность (текст):\nИли 'Отмена'")
+        return # <--- ДОБАВЛЕН RETURN
     elif current_state == STATE_ADMIN_ADD_CHAR_APPEARANCE:
         if text.lower() == "отмена": _go_to_admin_panel(user_id,vk); return
         state_data['appearance'] = text; state_data.update(get_default_stats_for_creation()); set_user_state(user_id, STATE_ADMIN_ADD_CHAR_CURSED_TECHNIQUE, state_data)
-        start_pending_text(user_id, PENDING_TEXT_CURSED_TECHNIQUE); send_admin_message_parts(vk, user_id, "Описание Проклятой Техники (затем 'Готово').\nЕсли нет - сразу 'Готово'.\nИли 'Отмена'", get_text_input_done_keyboard()); return
+        start_pending_text(user_id, PENDING_TEXT_CURSED_TECHNIQUE); send_admin_message_parts(vk, user_id, "Описание Проклятой Техники (затем 'Готово').\nЕсли нет - сразу 'Готово'.\nИли 'Отмена'", get_text_input_done_keyboard())
+        return # <--- ДОБАВЛЕН RETURN
     elif current_state == STATE_ADMIN_ADD_CHAR_CURSED_TECHNIQUE:
         if text.lower() == "отмена": clear_pending_text(user_id); _go_to_admin_panel(user_id,vk); return
         if text == "Готово (сохранить текст)":
@@ -125,7 +158,7 @@ def handle_admin_command(vk, event):
             clear_pending_text(user_id); set_user_state(user_id, STATE_ADMIN_ADD_CHAR_EQUIPMENT, state_data); start_pending_text(user_id, PENDING_TEXT_EQUIPMENT)
             send_admin_message_parts(vk, user_id, "Снаряжение (затем 'Готово').\nЕсли нет - сразу 'Готово'.\nИли 'Отмена'", get_text_input_done_keyboard())
         else: append_pending_text(user_id, text); send_admin_message_parts(vk, user_id, "Текст для Проклятой Техники добавлен. Еще или 'Готово'.", get_text_input_done_keyboard())
-        return
+        return # <--- ДОБАВЛЕН RETURN
     elif current_state == STATE_ADMIN_ADD_CHAR_EQUIPMENT:
         if text.lower() == "отмена": clear_pending_text(user_id); _go_to_admin_panel(user_id,vk); return
         if text == "Готово (сохранить текст)":
@@ -136,33 +169,13 @@ def handle_admin_command(vk, event):
             char_id = add_character(state_data);
             send_admin_message_parts(vk, user_id, f"Персонаж '{state_data['full_name']}' добавлен с ID: {char_id}!"); _go_to_admin_panel(user_id, vk)
         else: append_pending_text(user_id, text); send_admin_message_parts(vk, user_id, "Текст для Снаряжения добавлен. Еще или 'Готово'.", get_text_input_done_keyboard())
-        return
-
-    if payload and payload.get("action") == "admin_char_list_page":
-        new_page = payload.get("page", 0)
-        for_action = payload.get("for_action", state_data.get("for_action", "edit"))
-        _go_to_char_selection(user_id, vk, for_action=for_action, current_page=new_page)
-        return
-
-    if payload and payload.get("action") == "admin_edit_stat_page":
-        char_id_stat_page = payload.get("char_id", state_data.get("edit_char_id"))
-        new_page_stat = payload.get("page", 0)
-        if char_id_stat_page:
-            character_row = get_character_by_id(char_id_stat_page)
-            if character_row:
-                state_data["admin_stat_page"] = new_page_stat
-                set_user_state(user_id, STATE_ADMIN_EDIT_CHOOSE_ACTION, state_data)
-                send_admin_message_parts(vk, user_id, f"Редактирование статов (Стр. {new_page_stat + 1}):",
-                                         get_admin_edit_stat_fields_keyboard(char_id_stat_page, dict(character_row), current_page=new_page_stat))
-            else: _go_to_admin_panel(user_id, vk)
-        else: _go_to_admin_panel(user_id, vk)
-        return
+        return # <--- ДОБАВЛЕН RETURN
 
     char_id_being_edited = state_data.get('edit_char_id')
 
     if current_state == STATE_ADMIN_EDIT_CHOOSE_CHAR:
         if payload and payload.get("action") == "select_char_edit": _go_to_edit_char_actions(user_id, vk, payload.get("char_id"), state_data)
-        elif not payload: _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0))
+        elif not payload and text: _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0))
         return
 
     if current_state == STATE_ADMIN_EDIT_CHOOSE_ACTION:
@@ -170,7 +183,7 @@ def handle_admin_command(vk, event):
         action_payload = payload.get("action") if payload else None
         char_data_row = get_character_by_id(char_id_being_edited); char_dict = dict(char_data_row) if char_data_row else None
         if not char_dict: send_admin_message_parts(vk, user_id, "Персонаж не найден."); _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0)); return
-        current_admin_stat_page = state_data.get("admin_stat_page", 0)
+        current_admin_stat_page = state_data.get("admin_stat_page", payload.get("page", 0))
 
         if action_payload == "edit_char_info_menu": send_admin_message_parts(vk, user_id, "Какое поле изменить? (или 'Отмена')", get_admin_edit_general_info_fields_keyboard(char_id_being_edited))
         elif action_payload == "edit_char_stat_menu": send_admin_message_parts(vk, user_id, f"Какой стат изменить? (Стр. {current_admin_stat_page+1})", get_admin_edit_stat_fields_keyboard(char_id_being_edited, char_dict, current_page=current_admin_stat_page))
@@ -225,34 +238,22 @@ def handle_admin_command(vk, event):
         return
 
     if current_state == STATE_ADMIN_EDIT_LEARNED_TECHNIQUE:
-        if not char_id_being_edited:
-            send_admin_message_parts(vk, user_id, "Ошибка: ID персонажа не найден для редактирования техник.")
-            _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0)); return
-
-        char_data_row = get_character_by_id(char_id_being_edited)
-        if not char_data_row:
-            send_admin_message_parts(vk, user_id, "Ошибка: Персонаж для редактирования техник не найден.")
-            _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0)); return
-        char_dict = dict(char_data_row)
-
+        if not char_id_being_edited: _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0)); return
+        char_data_row = get_character_by_id(char_id_being_edited); char_dict = dict(char_data_row) if char_data_row else None
+        if not char_dict: send_admin_message_parts(vk, user_id, "Персонаж не найден."); _go_to_char_selection(user_id, vk, for_action="edit", current_page=state_data.get("page",0)); return
         if payload and payload.get("action") == "toggle_learned_tech":
             tech_key_to_toggle = payload.get('tech')
             if not tech_key_to_toggle or tech_key_to_toggle not in get_all_learned_technique_keys():
-                send_admin_message_parts(vk, user_id, "Ошибка: неверный ключ техники для изменения.")
-                send_admin_message_parts(vk, user_id, "Выберите технику для изменения статуса:", get_admin_edit_learned_techniques_keyboard(char_id_being_edited, char_dict)); return
-
+                send_admin_message_parts(vk, user_id, "Ошибка: неверный ключ техники."); _go_to_edit_char_actions(user_id, vk, char_id_being_edited, state_data); return
             current_status = char_dict.get(tech_key_to_toggle, False)
             new_status = not current_status
             update_character_field(char_id_being_edited, tech_key_to_toggle, new_status)
-            refreshed_char_data_row = get_character_by_id(char_id_being_edited)
-            refreshed_char_dict = dict(refreshed_char_data_row) if refreshed_char_data_row else char_dict
+            refreshed_char_dict = dict(get_character_by_id(char_id_being_edited))
             message_text = f"Техника '{get_learned_technique_display_name(tech_key_to_toggle)}' теперь {'изучена' if new_status else 'не изучена'}."
             keyboard_to_send = get_admin_edit_learned_techniques_keyboard(char_id_being_edited, refreshed_char_dict)
             send_admin_message_parts(vk, user_id, message_text, keyboard_to_send)
-        elif text.lower() == "назад (к действиям с персонажем)":
-             _go_to_edit_char_actions(user_id, vk, char_id_being_edited, state_data)
-        elif not payload:
-             send_admin_message_parts(vk, user_id, "Используйте кнопки для изменения статуса техник или кнопку 'Назад'.", get_admin_edit_learned_techniques_keyboard(char_id_being_edited, char_dict))
+        elif text.lower() == "назад (к действиям с персонажем)": _go_to_edit_char_actions(user_id, vk, char_id_being_edited, state_data)
+        elif not payload: send_admin_message_parts(vk, user_id, "Используйте кнопки.", get_admin_edit_learned_techniques_keyboard(char_id_being_edited, char_dict))
         return
 
     if current_state == STATE_ADMIN_VIEW_CHOOSE_CHAR:
@@ -271,8 +272,8 @@ def handle_admin_command(vk, event):
 
     if current_state == STATE_ADMIN_PANEL:
         if text == "Добавить Персонажа": set_user_state(user_id, STATE_ADMIN_ADD_CHAR_TAG, {}); send_admin_message_parts(vk, user_id, "Тэг игрока (@tag или [id123|@tag]) или 'Отмена':")
-        elif text == "Редактировать Персонажа": _go_to_char_selection(user_id, vk, for_action="edit")
-        elif text == "Просмотреть Анкеты": _go_to_char_selection(user_id, vk, for_action="view")
+        elif text == "Редактировать Персонажа": _go_to_char_selection(user_id, vk, for_action="edit", current_page=0)
+        elif text == "Просмотреть Анкеты": _go_to_char_selection(user_id, vk, for_action="view", current_page=0)
         elif text and not text.lower().startswith("назад в"): send_admin_message_parts(vk, user_id, "Неизвестная команда в Админ Панели.", get_admin_panel_keyboard())
         return
 

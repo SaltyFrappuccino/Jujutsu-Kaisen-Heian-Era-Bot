@@ -60,7 +60,6 @@ def format_character_full_info(char_data_row):
         info.append("  Нет изученных общих техник.")
 
     info.append(f"\n✨ Очки Развития (ОР): {char_data.get('rp_points', 0)}")
-    info.append(f"💰 Баланс: {char_data.get('balance', 0)} ¥")
 
     return "\n".join(info)
 

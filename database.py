@@ -66,6 +66,12 @@ def get_all_characters():
         cursor = conn.cursor()
         cursor.execute("SELECT id, owner_vk_id, full_name FROM characters ORDER BY full_name")
         return cursor.fetchall()
+    
+def get_characters_by_owner_id(owner_vk_id): # Возвращает СПИСОК персонажей
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM characters WHERE owner_vk_id = ? ORDER BY full_name", (owner_vk_id,))
+        return cursor.fetchall() # fetchall() вместо fetchone()
 
 def update_character_field(char_id, field, value):
     with get_db_connection() as conn:
@@ -119,6 +125,93 @@ def clear_pending_text(vk_id):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM pending_text WHERE vk_id = ?", (vk_id,))
+        conn.commit()
+
+def get_user_nick(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT nick FROM user_nicks WHERE vk_id = ?", (vk_id,))
+        row = cursor.fetchone()
+        if row:
+            return row['nick']
+        # Если ника нет, пробуем взять full_name из персонажа
+        cursor.execute("SELECT full_name FROM characters WHERE owner_vk_id = ?", (vk_id,))
+        char_row = cursor.fetchone()
+        if char_row:
+            return char_row['full_name']
+        return None
+
+def set_user_nick(vk_id, nick):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR REPLACE INTO user_nicks (vk_id, nick) VALUES (?, ?)", (vk_id, nick))
+        conn.commit()
+
+def ensure_user_nick_exists(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM user_nicks WHERE vk_id = ?", (vk_id,))
+        if cursor.fetchone() is None:
+            cursor.execute("SELECT full_name FROM characters WHERE owner_vk_id = ?", (vk_id,))
+            char_row = cursor.fetchone()
+            if char_row:
+                cursor.execute("INSERT INTO user_nicks (vk_id, nick) VALUES (?, ?)", (vk_id, char_row['full_name']))
+                conn.commit()
+
+def get_user_stats(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT wins, losses FROM user_stats WHERE vk_id = ?", (vk_id,))
+        row = cursor.fetchone()
+        if row:
+            return dict(row)
+        return {"wins": 0, "losses": 0}
+
+def add_win(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO user_stats (vk_id, wins, losses) VALUES (?, 0, 0)", (vk_id,))
+        cursor.execute("UPDATE user_stats SET wins = wins + 1 WHERE vk_id = ?", (vk_id,))
+        conn.commit()
+
+def add_loss(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO user_stats (vk_id, wins, losses) VALUES (?, 0, 0)", (vk_id,))
+        cursor.execute("UPDATE user_stats SET losses = losses + 1 WHERE vk_id = ?", (vk_id,))
+        conn.commit()
+
+def ensure_user_stats_exists(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO user_stats (vk_id, wins, losses) VALUES (?, 0, 0)", (vk_id,))
+        conn.commit()
+
+def get_user_balance(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM user_wallets WHERE vk_id = ?", (vk_id,))
+        row = cursor.fetchone()
+        if row:
+            return row['balance']
+        return 0
+
+def set_user_balance(vk_id, amount):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO user_wallets (vk_id, balance) VALUES (?, ?) ON CONFLICT(vk_id) DO UPDATE SET balance = excluded.balance", (vk_id, amount))
+        conn.commit()
+
+def add_user_balance(vk_id, delta):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO user_wallets (vk_id, balance) VALUES (?, ?) ON CONFLICT(vk_id) DO UPDATE SET balance = balance + excluded.balance", (vk_id, delta))
+        conn.commit()
+
+def ensure_user_wallet_exists(vk_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO user_wallets (vk_id, balance) VALUES (?, 0)", (vk_id,))
         conn.commit()
 
 init_db()

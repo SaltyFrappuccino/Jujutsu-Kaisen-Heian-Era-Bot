@@ -8,6 +8,7 @@ from database import get_user_state, set_user_state, clear_user_state, clear_pen
 from user_handlers import handle_start, handle_user_message
 from admin_handlers import handle_admin_command
 from chat_commands import handle_chat_command
+from admin_chat_commands import handle_admin_chat_command
 from battle_system import handle_battle_command, active_battles, BATTLE_STATE_ACTIVE, BATTLE_STATE_WAITING, BATTLE_ACTIONS, CURSED_TECHNIQUES
 from keyboards import get_main_menu_keyboard
 
@@ -70,6 +71,11 @@ def main():
                         else:
                             handle_chat_command(vk, event)
                     continue 
+
+                if text_stripped_for_command_check.startswith('~!'):
+                    if peer_id >= 2000000000:
+                        handle_admin_chat_command(vk, event)
+                    continue
 
                 if peer_id < 2000000000:
                     text_for_handler = text_original.strip()
