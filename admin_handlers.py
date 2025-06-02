@@ -267,7 +267,7 @@ def handle_admin_command(vk, event):
                     send_admin_message_parts(vk, user_id, header + full_info, get_back_to_admin_panel_keyboard())
                 else: send_admin_message_parts(vk, user_id, "Персонаж не найден.", get_back_to_admin_panel_keyboard()); _go_to_admin_panel(user_id, vk)
             else: send_admin_message_parts(vk, user_id, "Ошибка выбора.", get_back_to_admin_panel_keyboard()); _go_to_admin_panel(user_id, vk)
-        elif not payload: _go_to_char_selection(user_id, vk, for_action="view", current_page=state_data.get("page",0))
+        elif not payload: _go_to_char_selection(user_id, vk, for_action="view", current_page=   state_data.get("page",0))
         return
 
     if current_state == STATE_ADMIN_PANEL:

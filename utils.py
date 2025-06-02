@@ -162,3 +162,20 @@ def calculate_actual_stats(char_data_row):
     stats['black_flash_limit_value'] = char_data.get('level_black_flash_limit', 0)
 
     return stats
+
+def calculate_total_upgrade_cost(stat_key, current_level, levels_to_add, available_rp):
+    max_levels_map = {"level_cursed_energy_control": 4, "level_black_flash_chance": 19}
+    total_cost = 0; simulated_level = current_level; actual_levels_added = 0
+    for i in range(levels_to_add):
+        if stat_key in max_levels_map and simulated_level >= max_levels_map[stat_key]:
+            if i == 0: return 0, simulated_level, 0, f"'{get_stat_display_name(stat_key)}' уже на макс. уровне ({max_levels_map[stat_key]})."
+            else: return total_cost, simulated_level, actual_levels_added, f"Можно улучшить только до ур. {simulated_level} (макс.). Это будет стоить {total_cost} ОР."
+        cost_for_this_level = get_stat_upgrade_cost(stat_key, simulated_level)
+        if cost_for_this_level == float('inf'):
+            if i == 0: return 0, simulated_level, 0, f"'{get_stat_display_name(stat_key)}' не улучшается."
+            else: return total_cost, simulated_level, actual_levels_added, f"Можно улучшить только до ур. {simulated_level}. Это будет стоить {total_cost} ОР."
+        if total_cost + cost_for_this_level > available_rp:
+            if i == 0: return 0, simulated_level, 0, f"Недостаточно ОР ({available_rp}) для улучшения '{get_stat_display_name(stat_key)}' на 1 ур. (нужно {cost_for_this_level} ОР)."
+            else: return total_cost, simulated_level, actual_levels_added, f"Хватит ОР только на {actual_levels_added} ур. (до {simulated_level}). Это будет стоить {total_cost} ОР."
+        total_cost += cost_for_this_level; simulated_level += 1; actual_levels_added += 1
+    return total_cost, simulated_level, actual_levels_added, None

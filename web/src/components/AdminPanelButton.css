@@ -1,0 +1,75 @@
+.jk-admin-btn {
+  background: #c00;
+  color: #fff;
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1.5rem;
+  font-size: 1.1rem;
+  font-family: 'Manga', 'Roboto', 'Arial', sans-serif;
+  font-weight: bold;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px #000a;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  margin-left: 1.5rem;
+}
+.jk-admin-btn:hover {
+  background: #a00;
+  transform: scale(1.05);
+}
+.jk-modal-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.jk-modal {
+  background: #fff;
+  border-radius: 1.2rem;
+  box-shadow: 0 4px 32px #000b, 0 0 0 4px #c00 inset;
+  padding: 2.2rem 2.5rem 1.5rem 2.5rem;
+  min-width: 320px;
+  max-width: 95vw;
+  text-align: center;
+  font-family: 'Manga', 'Roboto', 'Arial', sans-serif;
+}
+.jk-admin-input {
+  width: 80%;
+  padding: 0.7rem;
+  margin: 1rem 0 0.5rem 0;
+  border: 2px solid #c00;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+}
+.jk-admin-submit, .jk-admin-cancel {
+  background: #c00;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  margin: 0.5rem 0.5rem 0 0.5rem;
+  cursor: pointer;
+  font-family: 'Manga', 'Roboto', 'Arial', sans-serif;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.jk-admin-cancel {
+  background: #222;
+}
+.jk-admin-submit:hover {
+  background: #a00;
+}
+.jk-admin-cancel:hover {
+  background: #444;
+}
+.jk-admin-error {
+  color: #c00;
+  margin-top: 0.7rem;
+  font-weight: bold;
+  font-size: 1.1rem;
+} 

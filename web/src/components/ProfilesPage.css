@@ -1,0 +1,63 @@
+.jk-profiles-bg {
+  min-height: 100vh;
+  background: #181818 url('https://i.imgur.com/4QfKuz1.jpg') repeat center center fixed;
+  background-size: cover;
+  padding: 2rem 0;
+}
+.jk-profiles-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+}
+.jk-profile-card {
+  background: rgba(255,255,255,0.95);
+  border: 2px solid #222;
+  border-radius: 1.2rem;
+  box-shadow: 0 4px 24px #0008, 0 0 0 4px #c00 inset;
+  width: 340px;
+  padding: 1.5rem 1.2rem;
+  margin-bottom: 1.5rem;
+  font-family: 'Manga', 'Roboto', 'Arial', sans-serif;
+  position: relative;
+  transition: transform 0.2s;
+}
+.jk-profile-card:hover {
+  transform: scale(1.03) rotate(-1deg);
+  box-shadow: 0 8px 32px #c00b, 0 0 0 4px #c00 inset;
+}
+.jk-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #c00;
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+.jk-profile-name {
+  font-size: 1.3rem;
+  font-family: 'Manga', 'Roboto', 'Arial', sans-serif;
+  color: #111;
+}
+.jk-profile-age {
+  font-size: 1rem;
+  color: #444;
+}
+.jk-profile-row {
+  margin: 0.3rem 0;
+  color: #222;
+  font-size: 1.05rem;
+}
+.jk-profile-appearance {
+  font-style: italic;
+  color: #666;
+}
+.jk-loading, .jk-error {
+  color: #fff;
+  font-size: 1.3rem;
+  text-align: center;
+  margin: 2rem 0;
+  text-shadow: 0 2px 8px #000;
+} 

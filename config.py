@@ -57,6 +57,7 @@ STATE_ADMIN_VIEW_CHARACTER = "admin_view_character"
 
 STATE_USER_CHOOSE_CHARACTER_ACTION = "user_choose_character_action" 
 STATE_USER_SPEND_RP_CHOOSE_STAT = "user_spend_rp_choose_stat"
+STATE_USER_SPEND_RP_ENTER_AMOUNT = "user_spend_rp_enter_amount"
 STATE_USER_SPEND_RP_CONFIRM = "user_spend_rp_confirm"
 
 PENDING_TEXT_CURSED_TECHNIQUE = "cursed_technique"

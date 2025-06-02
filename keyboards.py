@@ -85,12 +85,12 @@ def get_admin_character_list_keyboard(characters_list, for_action="view", curren
         nav_buttons_row.append({"label": "Вперед >>", "payload": {"action": "admin_char_list_page", "page": current_page + 1, "for_action": for_action}})
     if nav_buttons_row:
         for btn in nav_buttons_row: keyboard.add_button(btn["label"], color=VkKeyboardColor.SECONDARY, payload=btn["payload"])
-        if not keyboard.lines[-1]: # Если последний ряд пуст (только что добавили кнопки навигации без add_line)
+        if not keyboard.lines[-1]:
             pass
-        else: # Если кнопки навигации добавились к существующему ряду или создали новый неполный ряд
+        else:
             keyboard.add_line()
     elif paginated_list and keyboard.lines and keyboard.lines[-1]:
-         pass # Линия уже была после последнего элемента списка
+         pass
     keyboard.add_button("Назад в Админ Панель", color=VkKeyboardColor.SECONDARY)
     return keyboard.get_keyboard()
 
@@ -114,9 +114,9 @@ def get_stat_selection_keyboard(character_all_data_dict, available_rp, current_p
         if stat_key not in character_all_data_dict: continue
         dependency_field = stat_dependencies.get(stat_key)
         if dependency_field and not character_all_data_dict.get(dependency_field, False): continue
-        current_level = character_all_data_dict[stat_key]; cost = get_stat_upgrade_cost(stat_key, current_level)
-        if cost != float('inf') and cost <= available_rp:
-            eligible_stats.append({"key": stat_key, "label": f"{get_stat_display_name(stat_key)} ({current_level}) - {cost} ОР", "payload": {"action": "spend_rp", "stat": stat_key}})
+        current_level = character_all_data_dict[stat_key]; cost_next_level = get_stat_upgrade_cost(stat_key, current_level)
+        if cost_next_level != float('inf') and cost_next_level <= available_rp: # Проверяем стоимость хотя бы одного уровня
+            eligible_stats.append({"key": stat_key, "label": f"{get_stat_display_name(stat_key)} ({current_level})", "payload": {"action": "spend_rp_select_stat", "stat": stat_key}})
     total_eligible_stats = len(eligible_stats)
     start_index = current_page * STATS_PER_PAGE; end_index = start_index + STATS_PER_PAGE
     stats_on_this_page = eligible_stats[start_index:end_index]
@@ -208,11 +208,7 @@ def get_gender_selection_keyboard():
     keyboard.add_line(); keyboard.add_button("Отмена", color=VkKeyboardColor.NEGATIVE)
     return keyboard.get_keyboard()
 
-def get_game_keyboard(): # Эта функция есть в вашем файле, оставляю
-    keyboard = VkKeyboard(one_time=False)
-    keyboard.add_button("=Кости", color=VkKeyboardColor.PRIMARY)
-    keyboard.add_button("=Рулетка", color=VkKeyboardColor.PRIMARY)
-    keyboard.add_line()
-    keyboard.add_button("=Дуэль", color=VkKeyboardColor.PRIMARY)
-    keyboard.add_button("=Турнир", color=VkKeyboardColor.PRIMARY)
+def get_cancel_keyboard():
+    keyboard = VkKeyboard(one_time=True)
+    keyboard.add_button("Отмена", color=VkKeyboardColor.NEGATIVE)
     return keyboard.get_keyboard()
