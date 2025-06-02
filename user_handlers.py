@@ -191,7 +191,7 @@ def handle_user_message(vk, event):
                 clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU)
         elif text.lower() == "назад в главное меню": # Если пользователь нажал системную кнопку "Назад"
              clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU)
-        send_message_parts(vk, user_id, "Главное меню.", get_main_menu_keyboard(is_admin))
+             send_message_parts(vk, user_id, "Главное меню.", get_main_menu_keyboard(is_admin))
         else: # Если текстовый ввод в состоянии выбора персонажа
             action_text_cmd = state_data.get("action_text_command", "выполнить действие") if state_data else "выполнить действие"
             characters_as_dicts_for_kb = [dict(row) for row in user_characters_list_rows] if user_characters_list_rows else []
