@@ -115,6 +115,13 @@ class UserState(UserStateBase):
 
 # --- Инициализация FastAPI приложения ---
 app = FastAPI(title="RP Bot Admin API", description="API для управления базой данных RP бота")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://185.188.182.11:5173"],  # или ["*"] для всех, но лучше явно
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- CRUD операции для 'characters' ---
 
@@ -275,6 +282,14 @@ def delete_user_state_api(vk_id: int, db: sqlite3.Connection = Depends(get_db_co
 # - user_stats (CRUD)
 # - user_wallets (CRUD)
 # Принцип будет похожим: Pydantic модели, функции для каждого HTTP метода.
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # или ["*"] для всех, но лучше явно
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 if __name__ == "__main__":
     import uvicorn
