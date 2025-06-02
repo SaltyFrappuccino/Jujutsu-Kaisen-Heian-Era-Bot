@@ -1,7 +1,8 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
   text-align: center;
 }
 
@@ -43,8 +44,7 @@
 
 .jk-manga-bg {
   min-height: 100vh;
-  background: #111 url('https://i.imgur.com/4QfKuz1.jpg') repeat center center fixed;
-  background-size: cover;
+  background: linear-gradient(120deg, #232526 0%, #414345 100%);
   font-family: 'Manga', 'Roboto', 'Arial', sans-serif;
 }
 .jk-header {
@@ -55,6 +55,8 @@
   padding: 1.2rem 2.5rem 1.2rem 2.5rem;
   border-bottom: 4px solid #c00;
   box-shadow: 0 2px 16px #000b;
+  width: 100vw;
+  box-sizing: border-box;
 }
 .jk-title {
   color: #fff;
@@ -65,7 +67,8 @@
   margin: 0;
 }
 main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+  width: 100vw;
+  margin: 0;
+  padding: 2rem 0 0 0;
+  box-sizing: border-box;
 }

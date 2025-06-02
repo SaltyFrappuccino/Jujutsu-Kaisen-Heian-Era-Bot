@@ -1,0 +1,146 @@
+body {
+  overflow-x: hidden;
+}
+.admin-panel {
+  display: flex;
+  flex-direction: row;
+  gap: 3rem;
+  padding: 2.5rem 0;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 80vh;
+  width: 100vw;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+.admin-panel-list {
+  min-width: 320px;
+  max-width: 400px;
+  background: #232526;
+  color: #fff;
+  border-radius: 1.2rem;
+  padding: 1.5rem 1rem;
+  box-shadow: 0 2px 16px #0005;
+  margin-top: 0.5rem;
+  margin-left: 5rem;
+}
+.admin-panel-list h3 {
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+.admin-panel-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.admin-panel-list button {
+  background: #c00;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 1rem;
+  margin: 0.2rem 0;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+  width: 100%;
+  text-align: left;
+}
+.admin-panel-list button:hover {
+  background: #a00;
+}
+.admin-panel-form {
+  flex: 1 1 900px;
+  background: #fff;
+  border-radius: 1.2rem;
+  padding: 2.5rem 3rem 2rem 3rem;
+  box-shadow: 0 2px 16px #0003;
+  min-width: 400px;
+  max-width: 100vb;
+  width: 100%;
+  margin: 0 auto;
+  color: #222;
+}
+.admin-panel-form h3, .admin-panel h2 {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #c00;
+}
+.admin-panel-form form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #222;
+  font-size: 1.08rem;
+}
+.admin-panel-form input,
+.admin-panel-form textarea {
+  width: 100%;
+  margin-top: 0.2rem;
+  margin-bottom: 0.7rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #bbb;
+  font-size: 1.08rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: #f7f7f7;
+  color: #222;
+}
+.admin-panel-form textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+.admin-panel-form button[type="submit"] {
+  background: #c00;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.7rem 2rem;
+  font-size: 1.15rem;
+  margin-top: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.admin-panel-form button[type="submit"]:hover {
+  background: #a00;
+}
+.admin-panel-form button[type="button"] {
+  background: #eee;
+  color: #222;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.7rem 2rem;
+  font-size: 1.15rem;
+  margin-left: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.admin-panel-form button[type="button"]:hover {
+  background: #ddd;
+}
+.admin-panel-message {
+  margin-top: 1.5rem;
+  color: #0a0;
+  font-weight: bold;
+  font-size: 1.15rem;
+  text-align: center;
+}
+@media (max-width: 1100px) {
+  .admin-panel {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.5rem 0;
+  }
+  .admin-panel-form {
+    max-width: 98vw;
+    min-width: 0;
+    padding: 1.5rem 1vw 1.2rem 1vw;
+  }
+  .admin-panel-list {
+    max-width: 98vw;
+    min-width: 0;
+  }
+} 
