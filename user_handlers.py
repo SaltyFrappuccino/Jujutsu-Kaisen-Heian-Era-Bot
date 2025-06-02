@@ -190,8 +190,8 @@ def handle_user_message(vk, event):
                 send_message_parts(vk, user_id, "Ошибка при выборе персонажа. Попробуйте снова.", get_main_menu_keyboard(is_admin))
                 clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU)
         elif text.lower() == "назад в главное меню": # Если пользователь нажал системную кнопку "Назад"
-             clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU)
-             send_message_parts(vk, user_id, "Главное меню.", get_main_menu_keyboard(is_admin))
+            clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU)
+            send_message_parts(vk, user_id, "Главное меню.", get_main_menu_keyboard(is_admin))
         else: # Если текстовый ввод в состоянии выбора персонажа
             action_text_cmd = state_data.get("action_text_command", "выполнить действие") if state_data else "выполнить действие"
             characters_as_dicts_for_kb = [dict(row) for row in user_characters_list_rows] if user_characters_list_rows else []
@@ -262,13 +262,13 @@ def handle_user_message(vk, event):
             stat_name = get_stat_display_name(stat_to_upgrade)
             send_message_parts(vk, user_id, f"Сколько ОР потратить на '{stat_name}'? (Доступно: {available_rp}, максимум улучшений: {max_levels})\nВведите число от 1 до {max_levels}:")
         elif text.lower() == "назад в главное меню":
-             clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU)
-             send_message_parts(vk, user_id, "Главное меню.", get_main_menu_keyboard(is_admin))
+            clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU)
+            send_message_parts(vk, user_id, "Главное меню.", get_main_menu_keyboard(is_admin))
         else:
             available_rp_value_state = active_character_dict.get('rp_points', 0)
             keyboard_to_send = get_stat_selection_keyboard(active_character_dict, available_rp_value_state, current_page=current_stat_page)
             send_message_parts(vk, user_id, f"Персонаж: {active_character_dict['full_name']}\nПожалуйста, выберите характеристику (Стр. {current_stat_page + 1}) или используйте кнопки навигации.", keyboard_to_send)
-                return
+        return
 
     if current_state == STATE_USER_SPEND_RP_ENTER_AMOUNT:
         char_id_for_rp = state_data.get("char_id")
@@ -283,7 +283,7 @@ def handle_user_message(vk, event):
             send_message_parts(vk, user_id, "Ошибка: не удалось найти данные персонажа для траты ОР.", get_main_menu_keyboard(is_admin))
             clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU); return
         from utils import get_stat_display_name
-                stat_name = get_stat_display_name(stat_to_upgrade)
+        stat_name = get_stat_display_name(stat_to_upgrade)
         if text.lower() == "отмена":
             set_user_state(user_id, STATE_USER_SPEND_RP_CHOOSE_STAT, {"char_id": char_id_for_rp, "stat_page": stat_page})
             available_rp_value_state = active_character_dict.get('rp_points', 0)
@@ -306,7 +306,7 @@ def handle_user_message(vk, event):
             clear_user_state(user_id); set_user_state(user_id, STATE_MAIN_MENU); return
         set_user_state(user_id, STATE_USER_SPEND_RP_CONFIRM, {"char_id": char_id_for_rp, "stat_to_upgrade": stat_to_upgrade, "cost": total_cost, "current_level": current_level, "levels_to_add": actual_levels_added, "new_level": new_level, "previous_stat_page": stat_page})
         send_message_parts(vk, user_id, f"Персонаж: {active_character_dict['full_name']}\nУлучшить '{stat_name}' с {current_level} до {new_level} за {total_cost} ОР? Подтвердить/Отмена", get_confirm_cancel_keyboard())
-            return 
+        return 
         
     if current_state == STATE_USER_SPEND_RP_CONFIRM:
         char_id_for_confirm = state_data.get("char_id")
